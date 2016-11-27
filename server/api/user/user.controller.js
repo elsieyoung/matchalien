@@ -19,7 +19,6 @@ var validationError = function(res, err) {
  * Creates a new user
  */
 exports.create = function (req, res, next) {
-  console.log(req.body);
   var newUser = new User(req.body);
   newUser.save(function(err, user) {
     if (err) return validationError(res, err);
