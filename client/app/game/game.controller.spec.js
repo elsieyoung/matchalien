@@ -3,14 +3,14 @@
  */
 'use strict';
 
-describe('Controller: LevelOneController', function() {
+describe('Controller: gameController', function() {
 
   // load the controller's module
-  beforeEach(module('levelOne'));
+  beforeEach(module('game'));
   beforeEach(module('stateMock'));
 
   var scope;
-  var LevelOneController;
+  var gameController;
   var state;
   var $httpBackend;
 
@@ -22,13 +22,13 @@ describe('Controller: LevelOneController', function() {
 
     scope = $rootScope.$new();
     state = $state;
-    LevelOneController = $controller('LevelOneController', {
+    gameController = $controller('gameController', {
       $scope: scope
     });
   }));
 
   it('should attach a list of things to the controller', function() {
     $httpBackend.flush();
-    expect(LevelOneController.awesomeThings.length).toBe(4);
+    expect(gameController.awesomeThings.length).toBe(4);
   });
 });

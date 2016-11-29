@@ -1,15 +1,15 @@
 
-var levelOne = angular.module('nwmApp')
+var game = angular.module('nwmApp')
   .config(function($stateProvider) {
     $stateProvider
       .state('game', {
         url: '/game/:id',
-        templateUrl: 'app/level-one/level-one.html',
-        controller: 'LevelOneController'
+        templateUrl: 'app/game/game.html',
+        controller: 'gameController'
       });
   });
 
-levelOne.directive('ngRightClick', function($parse) {
+game.directive('ngRightClick', function($parse) {
   return function(scope, element, attrs) {
     var fn = $parse(attrs.ngRightClick);
     element.bind('contextmenu', function(event) {
@@ -21,7 +21,7 @@ levelOne.directive('ngRightClick', function($parse) {
   };
 });
 
-levelOne.filter('toArray', function() { return function(obj) {
+game.filter('toArray', function() { return function(obj) {
   if (!(obj instanceof Object)) return obj;
   return _.map(obj, function(val, key) {
     return Object.defineProperty(val, '$key', {__proto__: null, value: key});
@@ -31,16 +31,34 @@ levelOne.filter('toArray', function() { return function(obj) {
 /*******************************************************************
   DB functions / parsing functions
 *******************************************************************/
-levelOne.service('database', function(Restangular, $state, aliens) {
+game.service('database', function(Restangular, $state, aliens, bucket) {
 
-  /* Returns alien data given model and alien numbers. */
-  this.parseData = function(data, i, j){
-    var retVal = _.find(data[i][1], function (alien) {
-      var m = alien.modelsName.split(/a|b/)[1].split("_")[0];
-      var a = alien.modelsName.split(/a|b/)[1].split("_")[1];
-      return (m == (i + 1)) && (a == j);
-    });
-    return retVal;
+  /* Set alien array given parsed data. */
+  this.parseData = function(json){
+    // data = "[{'model': 1, 'AlienId': 1, 'properties': [1,2,3], 'url': '...'}, ...]"
+    uniqueModelNums = []
+    for (var i = 0; i < data.length; i++) {
+      alienData = data[i];
+
+      if (uniqueModelNums.indexOf(alienData.model) < 0) {
+        uniqueModelNums.push(alienData.model)
+      }
+
+      id = alienData.model + "_" + alienData.AlienId;
+      aliens.properties[id] = alienData.properties;
+      aliens.alienArray[id] = {
+        id: id,
+        model: "model" + alienData.model,
+        alien: alienData.AlienId,
+        url: alienData.url,
+        illegal: "legal-alien",
+        similar: "dissimilar",
+        bid: null,
+        score: 0,
+        similarityBar: 0
+      };
+    }
+    return uniqueModelNums.length, data.length
   };
 
   /* Shuffle given array and returns the new array. */
@@ -70,23 +88,13 @@ levelOne.service('database', function(Restangular, $state, aliens) {
       arr.push(key);
     return arr;
   }
-  //this.getShuffledArray = function(array) {
-  //  var len = Object.keys(array).length;
-  //  for (var i = len - 1; i > 0; i--) {
-  //    var j = Math.floor(Math.random() * (i + 1));
-  //    var temp = array[i];
-  //    array[i] = array[j];
-  //    array[j] = temp;
-  //  }
-  //  return array;
-  //};
 });
 
 
 /*******************************************************************
   Manage arrays of aliens
 *******************************************************************/
-levelOne.service('aliens', function() {
+game.service('aliens', function() {
 
   this.initAliens = function() {
     this.properties = {};
@@ -100,19 +108,7 @@ levelOne.service('aliens', function() {
 /*******************************************************************
   Helper functions
 *******************************************************************/
-levelOne.service('helper', function() {
-
-  // Returns alien num given alien ID of the form 0_0
-  this.get_model = function(ID){
-    var modelNum = ID.split("_")[0];
-    return modelNum;
-  };
-
-  // Returns model num given alien ID of the form 0_0
-  this.get_alien = function(ID){
-    var alienNum = ID.split("_")[1];
-    return alienNum;
-  };
+game.service('helper', function() {
 
   // Source: http://stackoverflow.com/questions/6274339/how-can-i-shuffle-an-array-in-javascript
   this.shuffleArray = function(arr) {
@@ -139,7 +135,7 @@ levelOne.service('helper', function() {
 /*******************************************************************
   Functions to update data (i.e. illegal aliens)
 *******************************************************************/
-levelOne.service('update',function(helper, bucket, aliens, style) {
+game.service('update',function(helper, bucket, aliens, style) {
 
   /* Returns an array of illegal aliens. */
   this.updateIllegalAlien = function() {
@@ -147,14 +143,14 @@ levelOne.service('update',function(helper, bucket, aliens, style) {
     // Array of models that are already in bucket
     var models_in_bucket = [];
     for (var i = 0; i < bucket.buckets[bucket.current_bucket].alien.length; i++) {
-      var model_num = helper.get_model(bucket.buckets[bucket.current_bucket].alien[i]);
+      var model_num = aliens.alienArray[bucket.buckets[bucket.current_bucket].alien[i]].model;
       if (models_in_bucket.indexOf(model_num) == -1) {
         models_in_bucket.push(model_num);
       }
     }
 
     for (var id in aliens.alienArray) {
-      model_num = helper.get_model(id);
+      model_num = aliens.alienArray[id].model;
       if (models_in_bucket.indexOf(model_num) != -1 && bucket.buckets[bucket.current_bucket].alien.indexOf(id) == -1) {
         aliens.alienArray[id].illegal = 'illegal';
       }
@@ -169,19 +165,19 @@ levelOne.service('update',function(helper, bucket, aliens, style) {
     // Calculate points for each bucket
     var total_score = 0;
     bucket.highestAlienScore = 0;
-    for (var i = 0; i < bucket.buckets.length; i++) {
-      var bucket_score  = calculateScoreByBucket(bucket.buckets[i].alien, maxModels);
+    for (var bid in bucket.buckers) {
+      var bucket_score  = calculateScoreByBucket(bucket.buckets[bid].alien, maxModels);
       var ceil_bucket_score = Math.ceil(bucket_score);
-      for (var j = 0; j < bucket.buckets[i].alien.length; j++) {
-        var curAlien = bucket.buckets[i].alien.splice(j, 1)[0];
-        var alienScore = ceil_bucket_score - Math.ceil(calculateScoreByBucket(bucket.buckets[i].alien, maxModels))
+      for (var j = 0; j < bucket.buckets[bid].alien.length; j++) {
+        var curAlien = bucket.buckets[bid].alien.splice(j, 1)[0];
+        var alienScore = ceil_bucket_score - Math.ceil(calculateScoreByBucket(bucket.buckets[bid].alien, maxModels))
         if (alienScore > bucket.highestAlienScore) {
           bucket.highestAlienScore = alienScore;
         }
         aliens.alienArray[curAlien].score = alienScore;
-        bucket.buckets[i].alien.splice(j, 0, curAlien);
+        bucket.buckets[bid].alien.splice(j, 0, curAlien);
       }
-      bucket.buckets[i].similarity = ceil_bucket_score;
+      bucket.buckets[bid].similarity = ceil_bucket_score;
       total_score += bucket_score;
       if (bucket_score > bucket.highestBucketScore) {
         bucket.highestBucketScore = ceil_bucket_score;
@@ -240,9 +236,6 @@ levelOne.service('update',function(helper, bucket, aliens, style) {
   };
 
   this.showSmallFeedback = function(oldScore, newScore, alien_id) {
-    //var element = document.getElementById(alien_id);
-    //var coord_x = element.offsetLeft - element.scrollLeft + 20;
-    //var coord_y = element.offsetTop - element.scrollTop - 20;
 
     var coord_x = Math.floor(window.innerWidth/2) - 300;
     var coord_y = Math.floor(window.innerHeight/2) - 100;
@@ -288,24 +281,21 @@ levelOne.service('update',function(helper, bucket, aliens, style) {
     }
   };
 
-  this.showBigFeedback = function(oldScore, newScore, greedyScore, highestScore) {
-
-    var higher = Math.max(greedyScore, highestScore);
-
+  this.showBigFeedback = function(oldScore, newScore, highestScore) {
     if (oldScore < newScore) {
-      if (newScore >= higher * 5 / 5) {
+      if (newScore >= highestScore * 5 / 5) {
         this.feedback = "Best!";
         $("#feedback").show().delay(500).fadeOut();
       }
-      else if (newScore >= higher * 4 / 5) {
+      else if (newScore >= highestScore * 4 / 5) {
         this.feedback = "Amazing!";
         $("#feedback").show().delay(500).fadeOut();
       }
-      else if (newScore >= higher * 3 / 5) {
+      else if (newScore >= highestScore * 3 / 5) {
         this.feedback = "Wow!";
         $("#feedback").show().delay(500).fadeOut();
       }
-      else if (newScore >= higher * 2 / 5) {
+      else if (newScore >= highestScore * 2 / 5) {
         this.feedback = "Good!";
         $("#feedback").show().delay(500).fadeOut();
       }
@@ -317,7 +307,7 @@ levelOne.service('update',function(helper, bucket, aliens, style) {
 /*******************************************************************
   Handles highlighting
 *******************************************************************/
-levelOne.service('style', function(aliens, helper) {
+game.service('style', function(aliens, helper) {
 
   this.lowLightSimilarAliens = function() {
     for (var id in aliens.alienArray) {
@@ -331,19 +321,15 @@ levelOne.service('style', function(aliens, helper) {
     var members = bucket.alien;
 
     for (var id in aliens.alienArray) {
-      // If it is already in current bucket, we don't want it.
-      // if (members.indexOf(id) >= 0) {
-      //   continue;
-      // }
       if (aliens.zoominAliens.indexOf(id) >= 0) {
         continue;
       }
 
-      var model_num = helper.get_model(id);
-      var alien_num = helper.get_alien(id);
+      var model_num = aliens.alienArray[id].model;
+      var alien_num = aliens.alienArray[id].alien;
 
       // Do not highlight if the alien is from the same model as the seeed
-      if (bucket.alien[0] && helper.get_model(bucket.alien[0]) == model_num) {
+      if (bucket.alien[0] && aliens.alienArray[bucket.alien[0]].model == model_num) {
         continue;
       }
 
@@ -356,8 +342,8 @@ levelOne.service('style', function(aliens, helper) {
       var similarCounter = 0;
       // Loop over all aliens in current group and compare with current alien in outer for loop.
       _.each(members, function(member) { // Each memeber here is an alien ID
-        var member_model_num = helper.get_model(member);
-        var member_alien_num = helper.get_alien(member);
+        var member_model_num = aliens.alienArray[member].model;
+        var member_alien_num = aliens.alienArray[member].alien;
         var member_props = aliens.properties[member];
 
         if (!_.isEmpty(_.intersection(cur_properties, member_props))) {
@@ -383,7 +369,7 @@ levelOne.service('style', function(aliens, helper) {
       ) {
         aliens.alienArray[id].similar = 'similar';
         aliens.zoominAliens.push(id);
-        highlightedSet.push(aliens.alienArray[id].color);
+        highlightedSet.push(aliens.alienArray[id].bid);
       }
     }
 
@@ -392,7 +378,7 @@ levelOne.service('style', function(aliens, helper) {
       var inHighlightedBucket = false;
       var i;
       for (i = 0; i < highlightedSet.length; i++) {
-        if (highlightedSet[i] == aliens.alienArray[id].color) {
+        if (highlightedSet[i] == aliens.alienArray[id].bid) {
           inHighlightedBucket = true;
         }
       }
@@ -421,66 +407,20 @@ levelOne.service('style', function(aliens, helper) {
 /*******************************************************************
   Handles buckets, colour array, predefined colours
 *******************************************************************/
-levelOne.service('bucket', function(style, $timeout, aliens, history) {
-
-  this.initColors = function() {
-    this.predefinedColors = {};
-
-    var hue_list = ['red', 'green', 'orange', 'blue', 'purple', 'pink'];
-    for (var i = 0; i < 40; i++) {
-      var random_color = randomColor({
-        luminosity: 'bright',
-        format: 'hex',
-        hue: hue_list[Math.floor(Math.random() * 6)]
-      });
-
-      // Regenerate if already in the list.
-      while(Object.keys(this.predefinedColors).indexOf(random_color) != -1) {
-        random_color = randomColor({
-          luminosity: 'bright',
-          format: 'hex',
-          hue: hue_list[Math.floor(Math.random() * 6)]
-        });
-      }
-
-      this.predefinedColors[random_color.toString()] = false;
-    }
-
-    this.predefinedColorCounter = 0;
-    this.buckets = [];
-    this.num_buckets = 0;
-    this.current_bucket = -1;
-    this.colorArray = [];
-    this.highestBucketScore = 0;
-  }
+game.service('bucket', function(style, $timeout, aliens, history) {
 
   this.restoreBucketsHelper= function (data) {
-    this.predefinedColorCounter = 0;
     this.num_buckets = 0;
     this.current_bucket = data[1];
-    this.colorArray = [];
     this.buckets = JSON.parse(data[0]);
 
-    // Clear all the previous alien color background and in attributes
-    _.each(aliens.alienArray, function (a) {
-      a.color = "#ffffff";
-      a.in = false;
-    });
-
     // Restore data structures
-    for (var i = 0; i < this.buckets.length; i++) {
-      this.colorArray.push(this.buckets[i].color);
+    for (var bid in this.buckets) {
       this.num_buckets++;
 
-      if (this.predefinedColors[this.buckets[i].color] == false) {
-        this.predefinedColors[this.buckets[i].color] = true;
-        this.predefinedColorCounter++;
-      }
-
-      for (var j = 0; j < this.buckets[i].alien.length; j++) {
-        var alien_id = this.buckets[i].alien[j];
-        aliens.alienArray[alien_id].color = this.buckets[i].color;
-        aliens.alienArray[alien_id].in = true;
+      for (var j = 0; j < this.buckets[bid].alien.length; j++) {
+        var alien_id = this.buckets[bid].alien[j];
+        aliens.alienArray[alien_id].bid = bid;
       }
     }
   }
@@ -495,72 +435,33 @@ levelOne.service('bucket', function(style, $timeout, aliens, history) {
 
     // Highlight aliens that are similar to aliens in current bucket
     var cur_alien_list = this.buckets[curBucket].alien;
-   // for (var j = 0; j < cur_alien_list.length; j++) {
-      style.highLight(cur_alien_list[0], this.buckets[curBucket], method_flag);
-    //}
+    style.highLight(cur_alien_list[0], this.buckets[curBucket], method_flag);
   };
 
   /* Update the array of colours and returns. */
   this.addBucket = function() {
-    var color = this.getRandomColor();
-    this.buckets.push({alien:[], color:color, similarity:0});
+    newBid = getUniqueId();
+    this.buckets[newBid] = {alien:[], similarity:0};
     this.num_buckets++;
-    var bucket_ind  = this.num_buckets - 1;
-    this.colorArray.push(color);
-    history.userActions.push("Create bucket " + bucket_ind);
-    this.currentBucket(bucket_ind);
+    this.currentBucket(newBid);
     this.updateAlienArray();
   };
 
-  this.getRandomColor = function() {
-    if (this.predefinedColorCounter != Object.keys(this.predefinedColors).length) {
-      for (var color in this.predefinedColors) {
-        // Colour available
-        if (!this.predefinedColors[color]) {
-          this.predefinedColors[color] = true;
-          this.predefinedColorCounter++;
-          return color;
-        }
-      }
-    }
-    var hue_list = ['red', 'green', 'orange', 'blue', 'purple', 'pink'];
-
-    color = randomColor({
-      luminosity: 'random',
-      format: 'hex',
-      hue: hue_list[Math.floor(Math.random() * 6)]
-    });
-
-    return color;
-  };
-
-  /* Update predefined colours when bucket_id is removed */
-  this.updatePredefinedColor = function(bucket_id) {
-    if (this.predefinedColors[this.buckets[bucket_id].color] == true) {
-      this.predefinedColors[this.buckets[bucket_id].color] = false;
-      this.predefinedColorCounter--;
-    }
+  // Source: https://gist.github.com/gordonbrander/2230317
+  var getUniqueId = function() {
+    // Math.random should be unique because of its seeding algorithm.
+    // Convert it to base 36 (numbers + letters), and grab the first 9 characters
+    // after the decimal.
+    return '_' + Math.random().toString(36).substr(2, 9);
   };
 
   this.removeBucket = function(bid) {
-    history.userActions.push("Remove bucket " + bid);
-    this.updatePredefinedColor(bid);
     this.buckets.splice(bid, 1);
-    this.colorArray.splice(bid, 1);
     this.num_buckets--;
   }
 
-  /* Returns a bucket ID which alien_id belongs to */
-  this.getBucketByAlienId = function(alien_id) {
-    for (var i = 0; i < this.buckets.length; i++) {
-      if (aliens.alienArray[alien_id].color == this.buckets[i].color) {
-        return i;
-      }
-    }
-  };
-
   this.getAlienScore = function(alienId) {
-    if (!aliens.alienArray[alienId].in) {
+    if (aliens.alienArray[alienId].bid == null) {
       return -1;
     }
     if (aliens.alienArray[alienId].score < 0) {
@@ -575,14 +476,14 @@ levelOne.service('bucket', function(style, $timeout, aliens, history) {
       var strippedAid = aid.substr(1);
       // Alien in current bucket: should display an empty space
       if (aid[0] != "_") {
-        if (aliens.alienArray[aid].color == this.buckets[this.current_bucket].color) {
+        if (aliens.alienArray[aid].bid == this.current_bucket) {
           this.orderedIds[i] = "_" + aid;
         }
         aliens.alienArray[aid].similarityBar = this.getAlienScore(aid);
       }
       // Alien not in current bucket: put it back to the list
       else if (aid[0] == "_") {
-        if (aliens.alienArray[strippedAid].color != this.buckets[this.current_bucket].color) {
+        if (aliens.alienArray[strippedAid].bid != this.current_bucket) {
           this.orderedIds[i] = strippedAid;
         }
         aliens.alienArray[strippedAid].similarityBar = this.getAlienScore(strippedAid);
@@ -590,7 +491,7 @@ levelOne.service('bucket', function(style, $timeout, aliens, history) {
     }
 
     // No buckt selected
-    if (this.current_bucket == -1) {
+    if (this.current_bucket == null) {
       this.currentAliens = [];
     }
     else {
@@ -602,14 +503,14 @@ levelOne.service('bucket', function(style, $timeout, aliens, history) {
     this.orderedIds = [];
 
     for (var id in aliens.alienArray) {
-      if (!aliens.alienArray[id].in) {
+      if (aliens.alienArray[id].bid == null) {
         this.orderedIds.push(id);
       }
     }
 
     var sortedBucket = [];
-    for (var i = 0; i < this.buckets.length; i++) {
-      sortedBucket.push(this.buckets[i]);
+    for (var bid in this.buckets) {
+      sortedBucket.push(this.buckets[bid]);
     }
 
     sortedBucket.sort(function(a, b) {
@@ -620,12 +521,8 @@ levelOne.service('bucket', function(style, $timeout, aliens, history) {
       this.orderedIds = this.orderedIds.concat(sortedBucket[i].alien);
     }
 
-    // for (var i = 0; i < this.buckets.length; i++) {
-    //   this.orderedIds = this.orderedIds.concat(this.buckets[this.buckets.length - 1 - i].alien);
-    // }
-
     // No buckt selected
-    if (this.current_bucket == -1) {
+    if (this.current_bucket == null) {
       this.currentAliens = [];
     }
     else {
@@ -634,10 +531,10 @@ levelOne.service('bucket', function(style, $timeout, aliens, history) {
   };
 
   this.getBucketScore = function(alienId) {
-    if (!aliens.alienArray[alienId].in) {
+    if (aliens.alienArray[alienId].bid == null) {
       return 0;
     }
-    var bucketId = this.getBucketByAlienId(alienId);
+    var bucketId = aliens.alienArray[alienId].bid;
     if (alienId != this.buckets[bucketId].alien[0]) {
       return 0;
     }
@@ -645,7 +542,7 @@ levelOne.service('bucket', function(style, $timeout, aliens, history) {
   };
 });
 
-levelOne.service('history', function(aliens) {
+game.service('history', function(aliens) {
 
   this.initHistory = function() {
     this.historyBuckets = [];
@@ -653,10 +550,7 @@ levelOne.service('history', function(aliens) {
     this.historyAlienId = '';
     this.historyBucketId = '';
     this.historySelectFlag = 0; // 0 means previously selected, 1 means previously unselected, 2 means previously swapped
-    this.historyColor = '';
     this.historySwappedBucketId = '';
-    this.historyColorArray = [];
-    this.userActions = [];
     // 0:'add-alien'
     // 1:'illegal-alien'
     // 2:'create-group'

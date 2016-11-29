@@ -1,5 +1,5 @@
 
-var levelOne = angular.module('nwmApp')
+var game = angular.module('nwmApp')
   .config(function($stateProvider) {
     $stateProvider
       .state('tut', {
@@ -9,7 +9,7 @@ var levelOne = angular.module('nwmApp')
       });
   });
 
-levelOne.directive('ngRightClick', function($parse) {
+game.directive('ngRightClick', function($parse) {
   return function(scope, element, attrs) {
     var fn = $parse(attrs.ngRightClick);
     element.bind('contextmenu', function(event) {
@@ -21,7 +21,7 @@ levelOne.directive('ngRightClick', function($parse) {
   };
 });
 
-levelOne.filter('toArray', function() { return function(obj) {
+game.filter('toArray', function() { return function(obj) {
   if (!(obj instanceof Object)) return obj;
   return _.map(obj, function(val, key) {
     return Object.defineProperty(val, '$key', {__proto__: null, value: key});

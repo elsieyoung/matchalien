@@ -47,10 +47,9 @@ body {
 // Component styles are injected through grunt
 // injector
 @import 'auth/auth.scss';
-@import 'game4/game4.scss';
+@import 'game/game.scss';
 @import 'howto/howto.scss';
 @import 'leaderboard/leaderboard.scss';
-@import 'level-one/level-one.scss';
 @import 'levelcomplete/levelcomplete.scss';
 @import 'main/main.scss';
 @import 'properties/properties.scss';

@@ -118,13 +118,13 @@ angular.module('nwmApp').controller('TutController',
     $scope.getNextGalaxy = function () {
       switch ($scope.cur_level) {
         case "13":
-          $state.go('game4', {id: 10});
+          $state.go('game', {id: 10});
           break;
         case "10":
-          $state.go('game4', {id: 12});
+          $state.go('game', {id: 12});
           break;
         case "12":
-          $state.go('game4', {id: 13});
+          $state.go('game', {id: 13});
       }
     }
 
@@ -1424,9 +1424,9 @@ angular.module('nwmApp').controller('TutController',
     $scope.playGame = function () {
       var randLev = Math.random();
                 if (randLev < 0.20) {
-                    $state.go('game4', {id: 10});
+                    $state.go('game', {id: 10});
                   } else {
-                    $state.go('game4', {id: 13});
+                    $state.go('game', {id: 13});
                   }
     };
 
