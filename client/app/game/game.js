@@ -34,31 +34,35 @@ game.filter('toArray', function() { return function(obj) {
 game.service('database', function(Restangular, $state, aliens, bucket) {
 
   /* Set alien array given parsed data. */
-  this.parseData = function(json){
-    // data = "[{'model': 1, 'AlienId': 1, 'properties': [1,2,3], 'url': '...'}, ...]"
+  this.parseData = function(data){
+    // data = "[{model: 1, id: 1, prop: [1,2,3], url: ['', '',...]}, ...]"
     uniqueModelNums = []
     for (var i = 0; i < data.length; i++) {
       alienData = data[i];
 
-      if (uniqueModelNums.indexOf(alienData.model) < 0) {
-        uniqueModelNums.push(alienData.model)
-      }
-
-      id = alienData.model + "_" + alienData.AlienId;
-      aliens.properties[id] = alienData.properties;
+      id = alienData.model + "_" + alienData.id;
       aliens.alienArray[id] = {
         id: id,
-        model: "model" + alienData.model,
-        alien: alienData.AlienId,
+        model: alienData.model,
+        alien: alienData.id,
         url: alienData.url,
         illegal: "legal-alien",
         similar: "dissimilar",
         bid: null,
         score: 0,
-        similarityBar: 0
+        similarityBar: 0,
+        properties: alienData.prop
       };
+
+      if (uniqueModelNums.indexOf(alienData.model) < 0) {
+        uniqueModelNums.push(alienData.model);
+        aliens.aliensByModel[alienData.model.toString()] = [id];
+      }
+      else{
+        aliens.aliensByModel[alienData.model.toString()].push(id);
+      }
     }
-    return uniqueModelNums.length, data.length
+    return uniqueModelNums.length, data.length;
   };
 
   /* Shuffle given array and returns the new array. */
@@ -97,9 +101,9 @@ game.service('database', function(Restangular, $state, aliens, bucket) {
 game.service('aliens', function() {
 
   this.initAliens = function() {
-    this.properties = {};
     this.zoominAliens = [];
     this.alienArray = {};
+    this.aliensByModel = {}; // key: model, value: list of alienIDs in the model
   }
 
 });
@@ -194,7 +198,7 @@ game.service('update',function(helper, bucket, aliens, style) {
     var prop_list = [];  // a list of unique properties in the bucket
     for (var i = 0; i < alien_list.length; i++) {
       // a list of properties of the current alien
-      var cur_properties = aliens.properties[alien_list[i]];
+      var cur_properties = aliens.alienArray[alien_list[i]].properties;
       for (var k = 0; k < cur_properties.length; k++) {
         if (prop_list.indexOf(cur_properties[k]) == -1) {
           // the property is not in prop_list yet
@@ -227,7 +231,7 @@ game.service('update',function(helper, bucket, aliens, style) {
   var compare = function(prop_id, alien_list) {
     var num_occurrence = 0;
     for (var i = 0; i < alien_list.length; i++) {
-      var cur_properties = aliens.properties[alien_list[i]];
+      var cur_properties = aliens.alienArray[alien_list[i]].properties;
       if (cur_properties.indexOf(prop_id) != -1) {
         num_occurrence++;
       }
@@ -334,7 +338,7 @@ game.service('style', function(aliens, helper) {
       }
 
       // a list of properties of the current alien
-      var cur_properties = aliens.properties[id];
+      var cur_properties = aliens.alienArray[id].properties;
 
 
       var checkAnyFlag = false;
@@ -344,7 +348,7 @@ game.service('style', function(aliens, helper) {
       _.each(members, function(member) { // Each memeber here is an alien ID
         var member_model_num = aliens.alienArray[member].model;
         var member_alien_num = aliens.alienArray[member].alien;
-        var member_props = aliens.properties[member];
+        var member_props = aliens.alienArray[member].properties;
 
         if (!_.isEmpty(_.intersection(cur_properties, member_props))) {
           // If the current alien has a common attribute with a member, we want it for method_flag = 1.

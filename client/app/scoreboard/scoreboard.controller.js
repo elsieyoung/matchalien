@@ -85,19 +85,20 @@ angular.module('nwmApp')
     // $scope.getStats();
 
     $scope.startGame = function () {
-      Restangular.all('api/users').get('has_seen_tut').then(function (serverJson) {
-        if (serverJson.seenTut == false) {
-          $state.go('tut', {id: 11});
-        } else {
-          // Randomly pick a level (model)
-          var randLev = Math.random();
-          if (randLev < 0.20) {
-            $state.go('game', {id: 10});
-          } else {
-            $state.go('game', {id: 13});
-          }
-        }
-      });
+      $state.go('game');
+      // Restangular.all('api/users').get('has_seen_tut').then(function (serverJson) {
+      //   if (serverJson.seenTut == false) {
+      //     $state.go('tut', {id: 11});
+      //   } else {
+      //     // Randomly pick a level (model)
+      //     var randLev = Math.random();
+      //     if (randLev < 0.20) {
+      //       $state.go('game', {id: 10});
+      //     } else {
+      //       $state.go('game', {id: 13});
+      //     }
+      //   }
+      // });
     };
 
 

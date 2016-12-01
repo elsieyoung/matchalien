@@ -156,14 +156,30 @@ angular.module('nwmApp').controller('gameController',
       $scope.cur_level = $stateParams.id;
 
       // Request data from the server
-      Restangular.all('api/levels/level/' + $scope.cur_level).getList().then((function (data) {
-        $scope.maxModels, $scope.numAliens = database.parseData(data);
-        database.shuffleProperties();
-        $scope.restoreBestGame();
-      }), function (err) {
-        $('#log-in').fadeIn();
-        $scope.loaded = true;
-      });
+      bucket.orderedIds = ["7_26"];
+      var data = [{level: 1,
+              model: 7,
+              id: 26,
+              url:
+               [ 'https://chrchung.github.io/Creatures/56.png',
+                 'https://chrchung.github.io/Creatures/105.png',
+                 'https://chrchung.github.io/Creatures/119.png',
+                 'https://chrchung.github.io/Creatures/83.png' ],
+              prop: [ 56, 105, 119, 83 ] } ];
+
+      $scope.maxModels, $scope.numAliens = database.parseData(data);
+      $scope.url = aliens.alienArray['7_26'].url[0];
+      $scope.hello = "hello";
+
+      console.log(aliens.alienArray['7_26'].url[0]);
+      // Restangular.all('api/levels/level/' + $scope.cur_level).getList().then((function (data) {
+      //   $scope.maxModels, $scope.numAliens = database.parseData(data);
+      //   database.shuffleProperties();
+      //   $scope.restoreBestGame();
+      // }), function (err) {
+      //   $('#log-in').fadeIn();
+      //   $scope.loaded = true;
+      // });
     };
 
     $scope.createNewBucket = function () {
@@ -560,7 +576,7 @@ angular.module('nwmApp').controller('gameController',
       }
       else {
         // Aliens in other buckets, can be switched to current bucket when being clicked
-        if (aliens.alienArray[alien_id].bid != null && \
+        if (aliens.alienArray[alien_id].bid != null &&
             bucket.current_bucket != aliens.alienArray[alien_id].bid) {
 
           var bucket_id = aliens.alienArray[alien_id].bid;
