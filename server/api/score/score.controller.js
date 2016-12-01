@@ -3,113 +3,141 @@
  * GET     /api/scores              ->  index
  */
 
+//'use strict';
+//var _ = require('lodash');
+//var config = require('../../config/environment');
+//var Parse = require('parse/node').Parse;
+//var fs = require('fs');
+//var async = require('async');
+
 'use strict';
 var _ = require('lodash');
 var config = require('../../config/environment');
-var Parse = require('parse/node').Parse;
-var fs = require('fs');
-var async = require('async');
+var Score = require('./score.model');
+var User = require('../user/user.model');
 
 // Gets a list of Scores
 exports.index = function (req, res) {
   res.json([]);
 };
 
-exports.saveOverallOnly = function (req, res) {
-  var UserData = Parse.Object.extend('UserData');
-  var userDataQuery = new Parse.Query(UserData);
-  if (req.body.user) {
-    var username = req.body.user;
-  }
-  else {
-    var username = req.session.user.username;
-  }
-
-    userDataQuery.equalTo('user', username);
-    userDataQuery.first({
-      success: function (user) {
-        user.set('overallScore', user.attributes.overallScore + (req.body.score - req.body.initialScore)*0.1);
-        user.save(null, {
-          success: function (result) {
-            res.status(200).end();
-          },
-          error: function (result, error) {
-            res.status(400).end();
-          }
-        });
-
-      },
-      error: function (error) {
-        res.status(400).end();
-      }
-    });
-
-};
+//exports.saveOverallOnly = function (req, res) {
+//  var UserData = Parse.Object.extend('UserData');
+//  var userDataQuery = new Parse.Query(UserData);
+//  if (req.body.user) {
+//    var username = req.body.user;
+//  }
+//  else {
+//    var username = req.session.user.username;
+//  }
+//
+//    userDataQuery.equalTo('user', username);
+//    userDataQuery.first({
+//      success: function (user) {
+//        user.set('overallScore', user.attributes.overallScore + (req.body.score - req.body.initialScore)*0.1);
+//        user.save(null, {
+//          success: function (result) {
+//            res.status(200).end();
+//          },
+//          error: function (result, error) {
+//            res.status(400).end();
+//          }
+//        });
+//
+//      },
+//      error: function (error) {
+//        res.status(400).end();
+//      }
+//    });
+//};
 
 exports.saveScore = function (req, res) {
   if (req.session.user) {
-    var solution = req.body.solution;
-    var score = req.body.score;
-    var actions = req.body.actions;
-    var seed = req.body.seed;
-    // var game = req.body.game;
-    var level = req.body.level;
+    var username = '';
+
     if (req.body.user) {
-      var username = req.body.user;
+      username = req.body.user;
     }
     else {
-      var username = req.session.user.username;
+      username = req.session.user.username;
     }
 
-    var Solutions = Parse.Object.extend('Solutions');
-    var sol = new Solutions();
-    sol.set('user', username);
-    sol.set('solution', solution);
-    sol.set('score', score);
-    sol.set('level', level);
-    sol.set('actions', actions);
-    sol.set('partial', false);
-    sol.set('initialScore', req.body.initialScore);
-    sol.set('targetScore', req.body.targetScore);
-    sol.set('duration', req.body.duration);
-    sol.set('seed', seed);
-    sol.set('type', req.body.type);
+    var newSolution = new Score();
+    newSolution.createdBy = username;
+    newSolution.level = req.body.level;
+    newSolution.initialScore = req.body.initialScore;
+    newSolution.targetScore = req.body.targetScore;
+    newSolution.score = req.body.score;
+    newSolution.solution = req.body.solution;
+    newSolution.duration = req.body.duration;
+    newSolution.seed = req.body.seed;
+    newSolution.type = req.body.type;
+    newSolution.actions = req.body.actions;
 
-    sol.save(null, {
-      success: function (gameScore) {
-        if (req.body.initialScore < req.body.score) {
-          var UserData = Parse.Object.extend('UserData');
-          var userDataQuery = new Parse.Query(UserData);
-          userDataQuery.equalTo('user', username);
-          userDataQuery.first({
-            success: function (user) {
-              user.set('overallScore', user.attributes.overallScore + req.body.score - req.body.initialScore);
-              user.save(null, {
-                success: function (result) {
-                  res.status(200).end();
-                },
-                error: function (result, error) {
-                  res.status(400).end();
-                }
-              });
-
-            },
-            error: function (error) {
-              res.status(400).end();
-            }
-          });
-        } else {
-          res.status(200).end();
-        }
-
-
-      },
-      error: function (gameScore, error) {
+    newSolution.save(function(err, solution) {
+      if(err) {
+        console.log("ERROR MESSAGE: " + err);
         res.status(400).end();
       }
+
+      // Save overallScore for this user
+      if (req.body.initialScore < req.body.score) {
+        User.update(
+          { 'username':username },
+          {
+            $inc: { overallScore: req.body.score - req.body.initialScore }
+          }
+        );
+      }
+      res.status(200).end();
+    });
+  }
+};
+
+exports.getBestSolution = function (req, res) {
+  if (req.session.user) {
+    var level = parseInt(req.params.level);
+    Score.find({ "level": level }, function (err, solution) {
+      if(err) { res.status(400).end(); }
+      res.json(solution);
+    }).sort({ score:-1 }).limit(1).pretty();
+  }
+};
+
+exports.getGameScoreboard = function (req, res) {
+  User.find(function (err, scores) {
+    if (err) res.status(400).end();
+
+    // Get data
+    scores = scores.map(function (score) {
+      return score.toJSON();
     });
 
-  }
+    // Get overall score
+    var overallScore = 0;
+    for (var i = 0; i < scores.length; i++) {
+      if (req.session.user.username == scores[i].username) {
+        overallScore = scores[i].overallScore;
+        break;
+      }
+    }
+
+    // Get rank
+    var rank = 0;
+    for (i = 0; i < scores.length; i++) {
+      rank++;
+      if (scores[i].overallScore == overallScore) {
+        break;
+      }
+    }
+
+    res.json({
+      scores: scores.slice(0, parseInt(req.params.array_size)),
+      overallScore: overallScore,
+      rank: rank
+    });
+
+  }).sort({ overallScore: -1 });
 };
 
 // exports.saveScore = function (req, res) {
@@ -259,105 +287,82 @@ exports.saveScore = function (req, res) {
 // };
 
 
-  exports.saveForLater = function (req, res) {
-    if (req.session.user) {
-      var solution = req.body.solution;
-      //var score = req.body.score;
-      var level = req.body.level;
-      var actions = req.body.actions;
-      var user = req.session.user;
-
-      //delete last save if found
-      var Solutions = Parse.Object.extend('Solutions');
-      var solutionsQuery = new Parse.Query(Solutions);
-      solutionsQuery.equalTo('level', parseInt(req.params.id));
-      solutionsQuery.equalTo('partial', false);
-      solutionsQuery.equalTo('user', user);
-
-      solutionsQuery.first({
-        success: function (sol) {
-          if (sol) {
-            sol.destroy({
-              success: function (myObject) {
-                // The object was deleted from the Parse Cloud.
-              },
-              error: function (myObject, error) {
-                // The delete failed.
-                // error is a Parse.Error with an error code and message.
-              }
-            });
-          }
-        },
-        error: function (error) {
-          res.status(400).end();
-        }
-      });
-
-      var Solution = Parse.Object.extend('Solutions');
-      var newSolution = new Solution();
-      newSolution.set('solution', solution);
-      newSolution.set('level', level);
-      newSolution.set('user', user.username);
-      newSolution.set('partial', true);
-      newSolution.set('actions', actions);
-
-      newSolution.save(null, {
-        success: function (gameScore) {
-          res.status(200).end();
-
-        },
-        error: function (gameScore, error) {
-          res.status(400).end();
-        }
-      });
-
-    }
-    ;
-  };
-
-  exports.getBestSolution = function (req, res) {
-    if (req.session.user) {
-      var Solutions = Parse.Object.extend('Solutions');
-      var solutionsQuery = new Parse.Query(Solutions);
-      solutionsQuery.equalTo('level', parseInt(req.params.level));
-      solutionsQuery.equalTo('partial', false);
-      solutionsQuery.descending('score');
-
-      // Parse solutions after a particular date
-      var day = new Date("2016-10-26T06:11:42.110Z");
-      solutionsQuery.greaterThanOrEqualTo('createdAt', day);
-
-      solutionsQuery.find({
-        success: function (sol) {
-          res.send(sol);
-        },
-        error: function (error) {
-          res.status(400).end();
-        }
-      });
-    }
-  };
+  //exports.saveForLater = function (req, res) {
+  //  if (req.session.user) {
+  //    var solution = req.body.solution;
+  //    //var score = req.body.score;
+  //    var level = req.body.level;
+  //    var actions = req.body.actions;
+  //    var user = req.session.user;
+  //
+  //    //delete last save if found
+  //    var Solutions = Parse.Object.extend('Solutions');
+  //    var solutionsQuery = new Parse.Query(Solutions);
+  //    solutionsQuery.equalTo('level', parseInt(req.params.id));
+  //    solutionsQuery.equalTo('partial', false);
+  //    solutionsQuery.equalTo('user', user);
+  //
+  //    solutionsQuery.first({
+  //      success: function (sol) {
+  //        if (sol) {
+  //          sol.destroy({
+  //            success: function (myObject) {
+  //              // The object was deleted from the Parse Cloud.
+  //            },
+  //            error: function (myObject, error) {
+  //              // The delete failed.
+  //              // error is a Parse.Error with an error code and message.
+  //            }
+  //          });
+  //        }
+  //      },
+  //      error: function (error) {
+  //        res.status(400).end();
+  //      }
+  //    });
+  //
+  //    var Solution = Parse.Object.extend('Solutions');
+  //    var newSolution = new Solution();
+  //    newSolution.set('solution', solution);
+  //    newSolution.set('level', level);
+  //    newSolution.set('user', user.username);
+  //    newSolution.set('partial', true);
+  //    newSolution.set('actions', actions);
+  //
+  //    newSolution.save(null, {
+  //      success: function (gameScore) {
+  //        res.status(200).end();
+  //
+  //      },
+  //      error: function (gameScore, error) {
+  //        res.status(400).end();
+  //      }
+  //    });
+  //
+  //  }
+  //  ;
+  //};
 
 // not used
-  exports.getCurUserSolution = function (req, res) {
-    if (req.session.user) {
-      var Solutions = Parse.Object.extend('Solutions');
-      var solutionsQuery = new Parse.Query(Solutions);
-      solutionsQuery.equalTo('level', parseInt(req.params.level));
-      solutionsQuery.equalTo('user', req.session.user.username);
-      solutionsQuery.equalTo('partial', true);
-      solutionsQuery.descending("createdAt");
-
-      solutionsQuery.find({
-        success: function (data) {
-          res.json(data);
-        },
-        error: function (error) {
-          res.status(400).end();
-        }
-      });
-    }
-  };
+//  exports.getCurUserSolution = function (req, res) {
+//    if (req.session.user) {
+//      var Solutions = Parse.Object.extend('Solutions');
+//      var solutionsQuery = new Parse.Query(Solutions);
+//      solutionsQuery.equalTo('level', parseInt(req.params.level));
+//      solutionsQuery.equalTo('user', req.session.user.username);
+//      solutionsQuery.equalTo('partial', true);
+//      solutionsQuery.descending("createdAt");
+//
+//      solutionsQuery.find({
+//        success: function (data) {
+//          res.json(data);
+//        },
+//        error: function (error) {
+//          res.status(400).end();
+//        }
+//      });
+//    }
+//  };
 
 
 // var updateOverallScore = function (user, game, level, score, thisScoreId, req, res) {
@@ -385,186 +390,146 @@ exports.saveScore = function (req, res) {
 //   });
 // };
 
-  var changeOverall = function (oldVal, newVal, user, req, res) {
-    var OverallScores = Parse.Object.extend('OverallScores');
-    var scoreQuery = new Parse.Query(OverallScores);
-    scoreQuery.equalTo('user', user.username);
-    scoreQuery.first({
-      success: function (overallScore) {
-        overallScore.set('overallScore', overallScore.attributes.overallScore - oldVal + newVal);
-        overallScore.save(null, {
-          success: function (gameScore) {
-            res.status(200).end();
-          },
-          error: function (gameScore, error) {
-            res.status(400).end();
-          }
-        });
-      },
-      error: function (error) {
-        res.status(400).end();
-      }
-    });
-  };
+  //var changeOverall = function (oldVal, newVal, user, req, res) {
+  //  var OverallScores = Parse.Object.extend('OverallScores');
+  //  var scoreQuery = new Parse.Query(OverallScores);
+  //  scoreQuery.equalTo('user', user.username);
+  //  scoreQuery.first({
+  //    success: function (overallScore) {
+  //      overallScore.set('overallScore', overallScore.attributes.overallScore - oldVal + newVal);
+  //      overallScore.save(null, {
+  //        success: function (gameScore) {
+  //          res.status(200).end();
+  //        },
+  //        error: function (gameScore, error) {
+  //          res.status(400).end();
+  //        }
+  //      });
+  //    },
+  //    error: function (error) {
+  //      res.status(400).end();
+  //    }
+  //  });
+  //};
+  //
+  //exports.getAllOverall = function (req, res) {
+  //  var OverallScores = Parse.Object.extend('OverallScores');
+  //  var scoreQuery = new Parse.Query(OverallScores);
+  //  scoreQuery.descending('overallScore');
+  //  scoreQuery.limit(10);
+  //  scoreQuery.find({
+  //    success: function (users) {
+  //      res.json(users);
+  //    },
+  //    error: function (error) {
+  //      res.status(400).end();
+  //    }
+  //  });
+  //};
 
-  exports.getAllOverall = function (req, res) {
-    var OverallScores = Parse.Object.extend('OverallScores');
-    var scoreQuery = new Parse.Query(OverallScores);
-    scoreQuery.descending('overallScore');
-    scoreQuery.limit(10);
-    scoreQuery.find({
-      success: function (users) {
-        res.json(users);
-      },
-      error: function (error) {
-        res.status(400).end();
-      }
-    });
-  };
-
-  exports.getInGameScoreboard = function (req, res) {
-    var score = req.params.score;
-    var UserData = Parse.Object.extend('UserData');
-    var userDataQuery = new Parse.Query(UserData);
-    userDataQuery.descending('overallScore');
-
-    userDataQuery.find({
-      success: function (scores) {
-
-        // Get data
-        scores = scores.map(function (each) {
-          return each.toJSON();
-        });
-
-        // Update
-        var newScores = [];
-        var overallScore = 0;
-        scores.forEach(function (user) {
-          if (user.user == req.session.user.username) {
-            overallScore = parseInt(user.overallScore) + parseInt(score);
-            user.overallScore = overallScore;
-            newScores.push(user);
-
-          }
-          else {
-            newScores.push(user);
-          }
-        });
-
-        // Sort
-        newScores.sort(function (a, b) {
-          return b.overallScore - a.overallScore;
-        });
-
-        // Get rank
-        var rank = 1;
-        for (var i = 0; i < newScores.length; i++) {
-          if (parseInt(newScores[i].overallScore) == overallScore) {
-            break;
-          }
-          rank++;
-        }
-        res.json({
-          scores: newScores.slice(0, parseInt(req.params.array_size)),
-          overallScore: overallScore,
-          rank: rank
-        });
-      },
-      error: function (error) {
-        res.status(400).end();
-      }
-    });
-  };
-
-  exports.getGameScoreboard = function (req, res) {
-    var UserData = Parse.Object.extend('UserData');
-    var userDataQuery = new Parse.Query(UserData);
-    userDataQuery.descending('overallScore');
-
-    userDataQuery.find({
-      success: function (scores) {
-        // Get data
-        scores = scores.map(function (score) {
-          return score.toJSON();
-        });
-
-        // Get overall score
-        var overallScore = 0
-        for (var i = 0; i < scores.length; i++) {
-          if (req.session.user.username == scores[i].user) {
-            overallScore = scores[i].overallScore;
-            break;
-          }
-        }
-
-        // Get rank
-        var rank = 0;
-        for (i = 0; i < scores.length; i++) {
-          rank++;
-          if (scores[i].overallScore == overallScore) {
-            break;
-          }
-        }
-        res.json({
-          scores: scores.slice(0, parseInt(req.params.array_size)),
-          overallScore: overallScore,
-          rank: rank
-        });
-      },
-      error: function (error) {
-        res.status(400).end();
-      }
-    });
-  };
-
-  exports.getCurUserGameScore = function (req, res) {
-    if (req.session.user) {
-      var Scores = Parse.Object.extend('Scores');
-      var scoreQuery = new Parse.Query(Scores);
-      var user = req.session.user.username;
-      scoreQuery.equalTo('user', user);
-      scoreQuery.equalTo('game', parseInt(req.params.game));
-      scoreQuery.equalTo('level', parseInt(req.params.level));
-      scoreQuery.limit(10);
-      scoreQuery.find({
-        success: function (scores) {
-          res.json(scores);
-        },
-        error: function (error) {
-          res.status(400).end();
-        }
-      });
-    } else {
-      res.status(400).end();
-    }
-    ;
-  };
+  //exports.getInGameScoreboard = function (req, res) {
+  //  var score = req.params.score;
+  //  var UserData = Parse.Object.extend('UserData');
+  //  var userDataQuery = new Parse.Query(UserData);
+  //  userDataQuery.descending('overallScore');
+  //
+  //  userDataQuery.find({
+  //    success: function (scores) {
+  //
+  //      // Get data
+  //      scores = scores.map(function (each) {
+  //        return each.toJSON();
+  //      });
+  //
+  //      // Update
+  //      var newScores = [];
+  //      var overallScore = 0;
+  //      scores.forEach(function (user) {
+  //        if (user.user == req.session.user.username) {
+  //          overallScore = parseInt(user.overallScore) + parseInt(score);
+  //          user.overallScore = overallScore;
+  //          newScores.push(user);
+  //
+  //        }
+  //        else {
+  //          newScores.push(user);
+  //        }
+  //      });
+  //
+  //      // Sort
+  //      newScores.sort(function (a, b) {
+  //        return b.overallScore - a.overallScore;
+  //      });
+  //
+  //      // Get rank
+  //      var rank = 1;
+  //      for (var i = 0; i < newScores.length; i++) {
+  //        if (parseInt(newScores[i].overallScore) == overallScore) {
+  //          break;
+  //        }
+  //        rank++;
+  //      }
+  //      res.json({
+  //        scores: newScores.slice(0, parseInt(req.params.array_size)),
+  //        overallScore: overallScore,
+  //        rank: rank
+  //      });
+  //    },
+  //    error: function (error) {
+  //      res.status(400).end();
+  //    }
+  //  });
+  //};
 
 
-  exports.getCurUserGameScoreBest = function (req, res) {
-    if (req.session.user) {
-      var Scores = Parse.Object.extend('Scores');
-      var scoreQuery = new Parse.Query(Scores);
-      var user = req.session.user;
-      scoreQuery.equalTo('user', req.session.user.username);
-      scoreQuery.equalTo('game', parseInt(req.params.game));
-      scoreQuery.equalTo('level', parseInt(req.params.level));
-      scoreQuery.descending('score');
-      scoreQuery.limit(1);
+  //exports.getCurUserGameScore = function (req, res) {
+  //  if (req.session.user) {
+  //    var Scores = Parse.Object.extend('Scores');
+  //    var scoreQuery = new Parse.Query(Scores);
+  //    var user = req.session.user.username;
+  //    scoreQuery.equalTo('user', user);
+  //    scoreQuery.equalTo('game', parseInt(req.params.game));
+  //    scoreQuery.equalTo('level', parseInt(req.params.level));
+  //    scoreQuery.limit(10);
+  //    scoreQuery.find({
+  //      success: function (scores) {
+  //        res.json(scores);
+  //      },
+  //      error: function (error) {
+  //        res.status(400).end();
+  //      }
+  //    });
+  //  } else {
+  //    res.status(400).end();
+  //  }
+  //  ;
+  //};
 
-      scoreQuery.find({
-        success: function (scores) {
-          res.json(scores);
-        },
-        error: function (error) {
-          res.status(400).end();
-        }
-      });
-    } else {
-      res.status(400).end();
-    }
-    ;
-  };
+
+  //exports.getCurUserGameScoreBest = function (req, res) {
+  //  if (req.session.user) {
+  //    var Scores = Parse.Object.extend('Scores');
+  //    var scoreQuery = new Parse.Query(Scores);
+  //    var user = req.session.user;
+  //    scoreQuery.equalTo('user', req.session.user.username);
+  //    scoreQuery.equalTo('game', parseInt(req.params.game));
+  //    scoreQuery.equalTo('level', parseInt(req.params.level));
+  //    scoreQuery.descending('score');
+  //    scoreQuery.limit(1);
+  //
+  //    scoreQuery.find({
+  //      success: function (scores) {
+  //        res.json(scores);
+  //      },
+  //      error: function (error) {
+  //        res.status(400).end();
+  //      }
+  //    });
+  //  } else {
+  //    res.status(400).end();
+  //  }
+  //  ;
+  //};
 
   exports.getCurUserRecentScores = function (req, res) {
     if (req.session.user) {
@@ -586,42 +551,42 @@ exports.saveScore = function (req, res) {
     ;
   };
 
-  exports.getCurUserOverall = function (req, res) {
-    if (req.session.user) {
-      var userData = Parse.Object.extend('UserData');
-      var userQuery = new Parse.Query(userData);
-      userQuery.equalTo('user', req.session.user.username);
-      userQuery.first({
-        success: function (user) {
-          res.send(user);
-        },
-        error: function (error) {
-          res.status(400).end();
-        }
-      });
-    } else {
-      res.status(400).end();
-    }
-    ;
-  };
+  //exports.getCurUserOverall = function (req, res) {
+  //  if (req.session.user) {
+  //    var userData = Parse.Object.extend('UserData');
+  //    var userQuery = new Parse.Query(userData);
+  //    userQuery.equalTo('user', req.session.user.username);
+  //    userQuery.first({
+  //      success: function (user) {
+  //        res.send(user);
+  //      },
+  //      error: function (error) {
+  //        res.status(400).end();
+  //      }
+  //    });
+  //  } else {
+  //    res.status(400).end();
+  //  }
+  //  ;
+  //};
 
-  exports.getCurUserGame4Solution = function (req, res) {
-    if (req.session.user) {
-      var Solution = Parse.Object.extend('Solutions');
-      var solQuery = new Parse.Query(Solution);
-      solQuery.equalTo('user', req.session.user.username);
-      solQuery.descending('createdAt');
-      solQuery.exists('targetScore');
-      solQuery.first({
-        success: function (sol) {
-          res.send(sol);
-        },
-        error: function (error) {
-          res.status(400).end();
-        }
-      });
-    } else {
-      res.status(400).end();
-    }
-    ;
-  };
+  //exports.getCurUserGame4Solution = function (req, res) {
+  //  if (req.session.user) {
+  //    var Solution = Parse.Object.extend('Solutions');
+  //    var solQuery = new Parse.Query(Solution);
+  //    solQuery.equalTo('user', req.session.user.username);
+  //    solQuery.descending('createdAt');
+  //    solQuery.exists('targetScore');
+  //    solQuery.first({
+  //      success: function (sol) {
+  //        res.send(sol);
+  //      },
+  //      error: function (error) {
+  //        res.status(400).end();
+  //      }
+  //    });
+  //  } else {
+  //    res.status(400).end();
+  //  }
+  //  ;
+  //};

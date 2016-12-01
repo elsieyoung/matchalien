@@ -11,17 +11,20 @@ var User = require('./user.model');
 //Parse.initialize(config.PARSE_APPID, config.PARSE_JSKEY);
 //Parse.serverURL = 'https://parseapi.back4app.com'
 
-var validationError = function(res, err) {
-  return res.status(422).json(err);
-};
 
 /**
  * Creates a new user
  */
 exports.create = function (req, res, next) {
-  var newUser = new User(req.body);
+  var newUser = new User();
+  newUser.username = req.body.username;
+  newUser.email = req.body.email;
+  newUser.password = req.body.password;
+  newUser.overallScore = 0;
+  newUser.seenTut = false;
+
   newUser.save(function(err, user) {
-    if (err) return validationError(res, err);
+    if (err) res.status(400).end();
   });
 };
 

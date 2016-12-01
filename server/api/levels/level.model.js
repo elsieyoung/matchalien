@@ -5,8 +5,10 @@ var mongoose = require('mongoose'),
 
 var LevelSchema = new Schema({
   level: Number,
-  model: String,
-  url: String
+  model: Number,
+  id: Number,
+  prop: [Number],
+  url: [String]
 });
 
 module.exports = mongoose.model('Level', LevelSchema);

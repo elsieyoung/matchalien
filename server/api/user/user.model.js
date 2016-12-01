@@ -7,6 +7,8 @@ var UserSchema = new Schema({
   username: String,
   email: { type: String, lowercase: true },
   password: String,
+  overallScore: Number,
+  seenTut: Boolean,
   date: { type: Date, default: Date.now }
 });
 
