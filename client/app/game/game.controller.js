@@ -209,7 +209,7 @@ angular.module('nwmApp').controller('gameController',
         // Restore data structures
         Object.keys(bucket.buckets).forEach(function(bid) {
           bucket.num_buckets++;
-          currBucket = bucket.buckets[bid]
+          var currBucket = bucket.buckets[bid]
           for (var j = 0; j < currBucket.alien.length; j++) {
             var alien_id = currBucket.alien[j];
             aliens.alienArray[alien_id].bid = bid;

@@ -1,3 +1,4 @@
+'use strict';
 
 var game = angular.module('nwmApp')
   .config(function($stateProvider) {
@@ -36,9 +37,9 @@ game.service('database', function(Restangular, $state, aliens, bucket) {
   /* Set alien array given parsed data. */
   this.parseData = function(data){
     // data = "[{model: 1, id: 1, prop: [1,2,3], url: ['', '',...]}, ...]"
-    uniqueModelNums = []
+    var uniqueModelNums = []
     for (var i = 0; i < data.length; i++) {
-      alienData = data[i];
+      var alienData = data[i];
 
       id = alienData.model + "_" + alienData.id;
       aliens.alienArray[id] = {
@@ -444,7 +445,7 @@ game.service('bucket', function(style, $timeout, aliens, history) {
 
   /* Update the array of colours and returns. */
   this.addBucket = function() {
-    newBid = getUniqueId();
+    var newBid = getUniqueId();
     this.buckets[newBid] = {alien:[], similarity:0};
     this.num_buckets++;
     this.currentBucket(newBid);
