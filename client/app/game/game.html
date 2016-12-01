@@ -1,0 +1,14 @@
+<div style="overflow:auto;max-height:60px;margin:20px;" ng-repeat="aid in bucket.orderedIds">
+  <div class="an-alien alien {{aid}} {{aliens.alienArray[aid].illegal}} {{aliens.alienArray[aid].isHidden}}"
+       ng-click="selectAlien(aid, false)"
+       ng-if="aid[0] != '_'">
+    <div ng-repeat="prop in aliens.alienArray[aid].properties"
+         class="property prop_{{aliens.alienArray[aid].properties[$index]}}">
+	    <img class="img-responsive"
+           style="cursor:pointer;height:60px;"
+           ng-src="{{aliens.alienArray[aid].url[$index]}}"/>
+    </div>
+	</div>
+</div>
+
+{{hello}}!

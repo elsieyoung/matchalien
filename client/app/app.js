@@ -32,4 +32,4 @@ angular.module('nwmApp').directive('imageonload', function() {
       });
     }
   };
-})
+});
