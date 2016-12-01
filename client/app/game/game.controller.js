@@ -141,6 +141,7 @@ angular.module('nwmApp').controller('gameController',
       $scope.bucket = bucket;
       $scope.aliens = aliens;
       $scope.history = history;
+      $scope.style = style;
 
       // $scope.toggleChooseSolutionPopup();
       $scope.dragged = false;  // Disable click event when start dragging
@@ -158,29 +159,80 @@ angular.module('nwmApp').controller('gameController',
       // Request data from the server
       bucket.orderedIds = ["7_26"];
       var data = [{level: 1,
-              model: 7,
-              id: 26,
+              model: 0,
+              id: 1,
               url:
-               [ 'https://chrchung.github.io/Creatures/56.png',
-                 'https://chrchung.github.io/Creatures/105.png',
-                 'https://chrchung.github.io/Creatures/119.png',
-                 'https://chrchung.github.io/Creatures/83.png' ],
-              prop: [ 56, 105, 119, 83 ] } ];
+               [ 'https://chrchung.github.io/Creatures/1.png',
+                 'https://chrchung.github.io/Creatures/2.png',
+                 'https://chrchung.github.io/Creatures/3.png',
+                 'https://chrchung.github.io/Creatures/4.png' ],
+              prop: [ 1, 2, 3, 4 ] },
+              {level: 1,
+              model: 0,
+              id: 2,
+              url:
+               [ 'https://chrchung.github.io/Creatures/3.png',
+                 'https://chrchung.github.io/Creatures/5.png',
+                 'https://chrchung.github.io/Creatures/10.png',
+                 'https://chrchung.github.io/Creatures/15.png' ],
+              prop: [ 3, 5, 10, 15 ] },
+              {level: 1,
+              model: 1,
+              id: 1,
+              url:
+               [ 'https://chrchung.github.io/Creatures/1.png',
+                 'https://chrchung.github.io/Creatures/5.png',
+                 'https://chrchung.github.io/Creatures/8.png',
+                 'https://chrchung.github.io/Creatures/9.png' ],
+              prop: [ 1, 5, 8, 9 ] },
+              {level: 1,
+              model: 2,
+              id: 1,
+              url:
+               [ 'https://chrchung.github.io/Creatures/1.png',
+                 'https://chrchung.github.io/Creatures/5.png',
+                 'https://chrchung.github.io/Creatures/8.png',
+                 'https://chrchung.github.io/Creatures/9.png' ],
+              prop: [ 1, 4, 8, 12 ] }
+];
 
       $scope.maxModels, $scope.numAliens = database.parseData(data);
-      $scope.url = aliens.alienArray['7_26'].url[0];
-      $scope.hello = "hello";
 
-      console.log(aliens.alienArray['7_26'].url[0]);
-      // Restangular.all('api/levels/level/' + $scope.cur_level).getList().then((function (data) {
+      // Restangular.all('/api/levels/').get($scope.cur_level).then(function (data) {
+      //   console.log(data);
       //   $scope.maxModels, $scope.numAliens = database.parseData(data);
       //   database.shuffleProperties();
       //   $scope.restoreBestGame();
-      // }), function (err) {
+      // }, function (err) {
       //   $('#log-in').fadeIn();
       //   $scope.loaded = true;
       // });
+      apply($scope);
     };
+
+    $scope.getNext = function(model, incr) {
+      console.log(aliens.currentBacterias);
+      var curBacteriaIdx = aliens.currentBacterias[model];
+      var numAliens = aliens.aliensByModel[model].length;
+      if (incr > 0) {
+        if (curBacteriaIdx == numAliens - 1) {
+          // go back to the first bacteria
+          aliens.currentBacterias[model] = 0;
+        }
+        else {
+          aliens.currentBacterias[model]++;
+        }
+      }
+      else if (incr < 0) {
+        if (curBacteriaIdx == 0) {
+          // go to the last bacteria
+          aliens.currentBacterias[model] = numAliens - 1;
+        }
+        else {
+          aliens.currentBacterias[model]--;
+        }
+      }
+    }
 
     $scope.createNewBucket = function () {
       $scope.newGroup(false);

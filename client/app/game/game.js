@@ -41,7 +41,7 @@ game.service('database', function(Restangular, $state, aliens, bucket) {
     for (var i = 0; i < data.length; i++) {
       var alienData = data[i];
 
-      id = alienData.model + "_" + alienData.id;
+      var id = alienData.model + "_" + alienData.id;
       aliens.alienArray[id] = {
         id: id,
         model: alienData.model,
@@ -57,13 +57,19 @@ game.service('database', function(Restangular, $state, aliens, bucket) {
 
       if (uniqueModelNums.indexOf(alienData.model) < 0) {
         uniqueModelNums.push(alienData.model);
-        aliens.aliensByModel[alienData.model.toString()] = [id];
+        aliens.aliensByModel[alienData.model] = [id];
       }
       else{
-        aliens.aliensByModel[alienData.model.toString()].push(id);
+        aliens.aliensByModel[alienData.model].push(id);
       }
     }
-    return uniqueModelNums.length, data.length;
+
+    var uniqueModelsSize = uniqueModelNums.length;
+    for (i = 0; i < uniqueModelsSize; i++) {
+      aliens.currentBacterias[i] = 0;
+    }
+
+    return uniqueModelsSize, data.length;
   };
 
   /* Shuffle given array and returns the new array. */
@@ -105,6 +111,11 @@ game.service('aliens', function() {
     this.zoominAliens = [];
     this.alienArray = {};
     this.aliensByModel = {}; // key: model, value: list of alienIDs in the model
+    this.currentBacterias = {};
+  }
+
+  this.getBacteria = function(model, idx) {
+    return this.alienArray[this.aliensByModel[model][idx]];
   }
 
 });
@@ -314,87 +325,14 @@ game.service('update',function(helper, bucket, aliens, style) {
 *******************************************************************/
 game.service('style', function(aliens, helper) {
 
-  this.lowLightSimilarAliens = function() {
-    for (var id in aliens.alienArray) {
-      aliens.alienArray[id].similar = "dissimilar";
-    }
-  };
-
-  this.highLight = function(alien_id, bucket, method_flag) {
-    // Get all aliens in current bucket.
-    var highlightedSet = [];
-    var members = bucket.alien;
-
-    for (var id in aliens.alienArray) {
-      if (aliens.zoominAliens.indexOf(id) >= 0) {
-        continue;
-      }
-
-      var model_num = aliens.alienArray[id].model;
-      var alien_num = aliens.alienArray[id].alien;
-
-      // Do not highlight if the alien is from the same model as the seeed
-      if (bucket.alien[0] && aliens.alienArray[bucket.alien[0]].model == model_num) {
-        continue;
-      }
-
-      // a list of properties of the current alien
-      var cur_properties = aliens.alienArray[id].properties;
-
-
-      var checkAnyFlag = false;
-      var checkAllFlag = true;
-      var similarCounter = 0;
-      // Loop over all aliens in current group and compare with current alien in outer for loop.
-      _.each(members, function(member) { // Each memeber here is an alien ID
-        var member_model_num = aliens.alienArray[member].model;
-        var member_alien_num = aliens.alienArray[member].alien;
-        var member_props = aliens.alienArray[member].properties;
-
-        if (!_.isEmpty(_.intersection(cur_properties, member_props))) {
-          // If the current alien has a common attribute with a member, we want it for method_flag = 1.
-          checkAnyFlag = true;
-          similarCounter += (_.intersection(cur_properties, member_props)).length;
-        }
-
-        else {
-          // If the current alien has no common attribute with a member, we don't want it for method_flag = 2.
-          checkAllFlag = false;
-        }
-      });
-
-      if (
-          /* highlight only if alien has at least one same attribute with ANY alien in current bucket*/
-          (method_flag == 1 && checkAnyFlag) ||
-          /* highlight only if alien has at least one same attribute with ALL aliens in current bucket */
-          (method_flag == 2 && checkAllFlag) ||
-          /* highlight only if alien’s # of similar attributes across all members of
-          current bucket >= the # of members in group */
-          (method_flag == 3 && similarCounter >= members.length*0.8)
-      ) {
-        aliens.alienArray[id].similar = 'similar';
-        aliens.zoominAliens.push(id);
-        highlightedSet.push(aliens.alienArray[id].bid);
-      }
-    }
-
-
-    for (var id in aliens.alienArray) {
-      var inHighlightedBucket = false;
-      var i;
-      for (i = 0; i < highlightedSet.length; i++) {
-        if (highlightedSet[i] == aliens.alienArray[id].bid) {
-          inHighlightedBucket = true;
-        }
-      }
-
-      if (!inHighlightedBucket) {
-        aliens.alienArray[id].isHidden = "hidden-alien";
-      } else {
-        aliens.alienArray[id].isHidden = "shown-alien";
-      }
-    }
-  };
+  this.highLight = function(bacteriaId) {
+    $(".bacterium").removeClass('common');
+    $(".bacteria").removeClass('current-bacteria');
+    aliens.alienArray[bacteriaId].properties.forEach(function(propId) {
+      $(".bacterium." + propId).addClass("common");
+      $(".bacterium." + bacteriaId).addClass('current-bacteria');
+    });
+  }
 
   this.scrollToItem = function(item) {
     var diff=(item.offsetTop - window.scrollY)/8;
