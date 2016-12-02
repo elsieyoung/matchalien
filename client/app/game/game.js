@@ -330,7 +330,7 @@ game.service('bucket', function($timeout, aliens, history) {
   /* Update the array of colours and returns. */
   this.addBucket = function() {
     var newBid = getUniqueId();
-    this.buckets[newBid] = {alien:[], similarity:0};
+    this.buckets[newBid] = [];
     this.num_buckets++;
     this.current_bucket = newBid;
   };
@@ -344,7 +344,7 @@ game.service('bucket', function($timeout, aliens, history) {
   };
 
   this.removeBucket = function(bid) {
-    this.buckets.splice(bid, 1);
+    delete this.buckets[bid];
     this.num_buckets--;
   }
 
@@ -369,18 +369,16 @@ game.service('bucket', function($timeout, aliens, history) {
     return this.buckets[bucketId].similarity/this.highestBucketScore * 100;
   };
 
-  // Select/deselect bacteria and update highlight
-  this.selectBacteria = function(aid) {
-    // aliens.alienArray[aid].properties.forEach(function(propId) {
-    //   $(".bacterium." + propId).addClass("common");
-    //   $(".bacterium." + bacteriaId).addClass('current-bacteria');
-    // });
-    // var currentBacteriaInModel = ;
-    // $(".bacteria." + bacteriaId).toggleClass('selected-bacteria');
-  }
+  this.updateHighlight = function() {
+    $(".bacterium").removeClass("common");
+    $(".bacteria").removeClass("selected-bacteria");
 
-  this.deselectBacteria = function(bacteriaId) {
-    $(".bacteria." + bacteriaId).removeClass('selected-bacteria');
+    this.buckets[this.current_bucket].alien.forEach(function(curAid) {
+      aliens.alienArray[curAid].properties.forEach(function(pid) {
+        $(".bacterium." + pid).addClass("common");
+      });
+      $(".bacteria." + curAid).addClass("selected-bacteria");
+    });
   }
 });
 

@@ -7,9 +7,8 @@
       <br>
       <button><span class="glyphicon glyphicon-chevron-down" style="float:left;cursor:pointer;" aria-hidden="true" ng-click="getNext(model, 1)"></span></button>
     </div>
-    <div class="bacteria {{aliens.getBacteria(model, idx).id}}"
-         ng-click="style.highLight(aliens.getBacteria(model, idx).id)"
-         ng-if="aliens.getBacteria(model, idx).id[0] != '_'">
+    <div class="bacteria {{aliens.getBacteria(model, idx).id}} {{aliens.getBacteria(model, idx).in}}"
+         ng-click="selectAlien(aliens.getBacteria(model, idx).id)">
       <div ng-repeat="propId in aliens.getBacteria(model, idx).properties"
            class="bacterium {{propId}}">
         <img ng-src="{{aliens.getBacteria(model, idx).url[$index]}}"/>
