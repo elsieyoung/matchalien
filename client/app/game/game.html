@@ -1,18 +1,32 @@
-<div ng-repeat="(model, idx) in aliens.currentBacterias"
-     class="model {{modelNum}}">
-  <div class="col-xs-2">
-    <br>
-    <button><span class="glyphicon glyphicon-chevron-up" style="float:left;cursor:pointer;" aria-hidden="true" ng-click="getNext(model, -1)"></span></button>
-    <br>
-    <button><span class="glyphicon glyphicon-chevron-down" style="float:left;cursor:pointer;" aria-hidden="true" ng-click="getNext(model, 1)"></span></button>
-  </div>
-  <div class="col-xs-8 bacteria {{aliens.getBacteria(model, idx).id}}"
-       ng-click="style.highLight(aliens.getBacteria(model, idx).id)"
-       ng-if="aliens.getBacteria(model, idx).id[0] != '_'">
-    <div ng-repeat="propId in aliens.getBacteria(model, idx).properties"
-         class="bacterium {{propId}}">
-       <img ng-src="{{aliens.getBacteria(model, idx).url[$index]}}"/>
+<div class="main-panel">
+  <div ng-repeat="(model, idx) in aliens.currentBacterias"
+       class="model {{modelNum}}">
+    <div class="col-xs-2 arrow-buttons">
+      <br>
+      <button><span class="glyphicon glyphicon-chevron-up" style="float:left;cursor:pointer;" aria-hidden="true" ng-click="getNext(model, -1)"></span></button>
+      <br>
+      <button><span class="glyphicon glyphicon-chevron-down" style="float:left;cursor:pointer;" aria-hidden="true" ng-click="getNext(model, 1)"></span></button>
     </div>
+    <div class="bacteria {{aliens.getBacteria(model, idx).id}}"
+         ng-click="style.highLight(aliens.getBacteria(model, idx).id)"
+         ng-if="aliens.getBacteria(model, idx).id[0] != '_'">
+      <div ng-repeat="propId in aliens.getBacteria(model, idx).properties"
+           class="bacterium {{propId}}">
+        <img ng-src="{{aliens.getBacteria(model, idx).url[$index]}}"/>
+      </div>
+    </div>
+    <br/>
   </div>
-  <br/>
+</div>
+
+<div id="buttons3">
+  <button id="redo-button" class="btn" ng-click="redo()" ng-if="!disableRedo">Redo</button>
+  <button id="dummy-redo-button" class="btn" ng-if="disableRedo">Redo</button>
+  <button id="undo-button" class="btn" ng-click="undo()" ng-if="!disableUndo">Undo</button>
+  <button id="dummy-undo-button" class="btn" ng-if="disableUndo">Undo</button>
+  <button id="add-group-button" class="btn" ng-click="startOver()">Skip this client</button>
+  <div class='title-font score3 big'>EARNED: $<span count-to="{{score - initialScore}}" value="{{prev_score - initialScore}}" duration="1" ng-show="doneSeeding"></span></div>
+  <div class='title-font target big'>TARGET: $<span ng-show="doneSeeding">{{highest_score - initialScore + 1}}</span></div>
+  <button id="end-button3" class="btn" ng-click="skipLevel()">Skip this galaxy</button>
+  <button id="end-button" class="btn" ng-click="endGame()">End game</button>
 </div>

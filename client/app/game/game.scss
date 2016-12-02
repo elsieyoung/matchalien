@@ -1,7 +1,28 @@
+.main-panel {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  width: 70%;
+  margin-left: 3rem;
+}
+
+.arrow-buttons {
+  margin-top: 1.5rem;
+  width: 8%;
+}
+
 .model {
+  height: 10rem;
+  background-color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 1rem;
+  border-radius: 10px;
+  padding: 0 1rem;
 }
 
 .bacteria {
+  padding-top: 2rem;
+  padding-bottom: 3rem;
 }
 
 .bacterium {
@@ -300,22 +321,22 @@
 //   display: none;
 // }
 //
-// .big {
-//   font-size: 15px !important;
-//   color: rgb(252, 61, 93) !important;
-// }
-//
-// .small {
-//   font-size: 8px !important;
-//   font-family: "Signika" !important;
-// }
-//
-// .title-font {
-//   font-family: 'Lovelo Black';
-//   font-size: 12px;
-//   font-weight: bold;
-//   color: white;
-// }
+ .big {
+   font-size: 15px !important;
+   color: rgb(252, 61, 93) !important;
+ }
+
+ .small {
+   font-size: 8px !important;
+   font-family: "Signika" !important;
+ }
+
+ .title-font {
+   font-family: 'Lovelo Black';
+   font-size: 12px;
+   font-weight: bold;
+   color: white;
+ }
 //
 // #bottom-right #score-board {
 //   left: 0;
@@ -495,80 +516,80 @@
 //   }
 // }
 //
-// #add-group-button {
-//   width: 150px;
-//   background-color: rgb(249,133,141);
-//   color: #fff;
-//   right: 162px;
-//   position: fixed;
-//   bottom: 45px;
-// }
-//
-//
-// #undo-button {
-//   width: 73px;
-//   height: 30px;
-//   background-color: #ffbb02;
-//   color: #fff;
-//   right: 234px;
-//   position: fixed;
-//   bottom: 80px;
-//   margin-right: 5px;
-//
-// }
-//
-// #dummy-undo-button {
-//   width: 73px;
-//   height: 30px;
-//   opacity: 0.6;
-//   background-color: #ffbb02;
-//   color: #fff;
-//   right: 234px;
-//   position: fixed;
-//   bottom: 80px;
-//   margin-right: 5px;
-//   z-index: 999;
-// }
-//
-// #redo-button {
-//   width: 73px;
-//   height: 30px;
-//   margin-left: 5px;
-//   background-color: #87fedb;
-//   color: #fff;
-//   right: 157px;
-//   position: fixed;
-//   bottom: 80px;
-//   margin-right: 5px;
-//
-// }
-//
-// #dummy-redo-button {
-//   width: 73px;
-//   height: 30px;
-//   opacity: 0.6;
-//   margin-left: 5px;
-//   background-color: #87fedb;
-//   color: #fff;
-//   right: 157px;
-//   position: fixed;
-//   bottom: 80px;
-//   margin-right: 5px;
-//   z-index: 999;
-// }
-//
-// #add-group {
-//   display: inline-block;
-// }
-//
-// #end-button {
-//   width: 150px;
-//   position: fixed;
-//   bottom: 10px;
-//   background-color: rgb(54, 196, 255);
-//   right: 162px;
-//   color: #fff;
-// }
+ #add-group-button {
+   width: 150px;
+   background-color: rgb(249,133,141);
+   color: #fff;
+   right: 162px;
+   position: fixed;
+   bottom: 45px;
+ }
+
+
+ #undo-button {
+   width: 73px;
+   height: 30px;
+   background-color: #ffbb02;
+   color: #fff;
+   right: 234px;
+   position: fixed;
+   bottom: 80px;
+   margin-right: 5px;
+
+ }
+
+ #dummy-undo-button {
+   width: 73px;
+   height: 30px;
+   opacity: 0.6;
+   background-color: #ffbb02;
+   color: #fff;
+   right: 234px;
+   position: fixed;
+   bottom: 80px;
+   margin-right: 5px;
+   z-index: 999;
+ }
+
+ #redo-button {
+   width: 73px;
+   height: 30px;
+   margin-left: 5px;
+   background-color: #87fedb;
+   color: #fff;
+   right: 157px;
+   position: fixed;
+   bottom: 80px;
+   margin-right: 5px;
+
+ }
+
+ #dummy-redo-button {
+   width: 73px;
+   height: 30px;
+   opacity: 0.6;
+   margin-left: 5px;
+   background-color: #87fedb;
+   color: #fff;
+   right: 157px;
+   position: fixed;
+   bottom: 80px;
+   margin-right: 5px;
+   z-index: 999;
+ }
+
+ #add-group {
+   display: inline-block;
+ }
+
+ #end-button {
+   width: 150px;
+   position: fixed;
+   bottom: 10px;
+   background-color: rgb(54, 196, 255);
+   right: 162px;
+   color: #fff;
+ }
 //
 // #current-group {
 //   margin-top: 3px;
@@ -871,25 +892,24 @@
 //
 // // game version where alien seeded
 //
-// #buttons3 {
-//   z-index: 9;
-//   position: fixed;
-//   bottom: 45px;
-//   right: 10px;
-//   padding: 7px;
-//   border-radius: 5px;
-//   display: inline-block;
-//   width: 150px;
-//   height: 65px;
-//   text-align: center;
-//   background-color: #fac4ee;
-//
-//   img {
-//     cursor: pointer;
-//   }
-//
-//   background-color: rgb(250, 196, 238);
-// }
+ #buttons3 {
+   z-index: 9;
+   position: fixed;
+   bottom: 45px;
+   right: 10px;
+   padding: 7px;
+   border-radius: 5px;
+   display: inline-block;
+   width: 150px;
+   height: 65px;
+   text-align: center;
+
+   img {
+     cursor: pointer;
+   }
+
+   background-color: rgb(250, 196, 238);
+ }
 //
 // .score3 {
 //   margin-top: 6px;
@@ -954,30 +974,30 @@
 // #add-group3 {
 //   display: inline-block;
 // }
-//
-// #end-button3 {
-//   width: 150px;
-//   position: fixed;
-//   bottom: 10px;
-//   background-color: #E5CDFF;
-//   right: 161px;
-//   color: #fff;
-// }
-//
-// #skip-family2 {
-//   width: 150px;
-//   position: fixed;
-//   bottom: 127px;
-//   right: 10px;
-//   background-color: #E5CDFF;
-//   color: #fff;
-// }
-//
-// #end-button {
-//   width: 150px;
-//   position: fixed;
-//   bottom: 10px;
-//   background-color: rgb(54, 196, 255);
-//   right: 10px;
-//   color: #fff;
-// }
+
+ #end-button3 {
+   width: 150px;
+   position: fixed;
+   bottom: 10px;
+   background-color: #E5CDFF;
+   right: 161px;
+   color: #fff;
+ }
+
+ //#skip-family2 {
+ //  width: 150px;
+ //  position: fixed;
+ //  bottom: 127px;
+ //  right: 10px;
+ //  background-color: #E5CDFF;
+ //  color: #fff;
+ //}
+
+ #end-button {
+   width: 150px;
+   position: fixed;
+   bottom: 10px;
+   background-color: rgb(54, 196, 255);
+   right: 10px;
+   color: #fff;
+ }
