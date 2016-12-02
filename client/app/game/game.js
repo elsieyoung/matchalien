@@ -72,27 +72,6 @@ game.service('database', function(Restangular, $state, aliens, bucket) {
     return uniqueModelsSize, data.length;
   };
 
-  /* Shuffle given array and returns the new array. */
-  Array.prototype.shuffle = function(){
-    for (var i = 0; i < this.length; i++){
-      var a = this[i];
-      var b = Math.floor(Math.random() * this.length);
-      this[i] = this[b];
-      this[b] = a;
-    }
-  }
-
-  this.shuffleProperties = function() {
-    var new_obj = {};
-    var keys = getKeys(aliens.alienArray);
-    keys.shuffle();
-    for (var key in keys){
-      if (key == "shuffle") continue; // skip our prototype method
-      new_obj[keys[key]] = aliens.alienArray[keys[key]];
-    }
-    aliens.alienArray = new_obj;
-  }
-
   function getKeys(obj){
     var arr = new Array();
     for (var key in obj)
@@ -151,7 +130,7 @@ game.service('helper', function() {
 /*******************************************************************
   Functions to update data (i.e. illegal aliens)
 *******************************************************************/
-game.service('update',function(helper, bucket, aliens, style) {
+game.service('update',function(helper, bucket, aliens) {
 
   /* Returns an array of illegal aliens. */
   this.updateIllegalAlien = function() {
@@ -319,38 +298,18 @@ game.service('update',function(helper, bucket, aliens, style) {
   };
 });
 
-
-/*******************************************************************
-  Handles highlighting
-*******************************************************************/
-game.service('style', function(aliens, helper) {
-
-  this.highLight = function(bacteriaId) {
-    $(".bacterium").removeClass('common');
-    $(".bacteria").removeClass('current-bacteria');
-    aliens.alienArray[bacteriaId].properties.forEach(function(propId) {
-      $(".bacterium." + propId).addClass("common");
-      $(".bacterium." + bacteriaId).addClass('current-bacteria');
-    });
-  }
-
-  this.scrollToItem = function(item) {
-    var diff=(item.offsetTop - window.scrollY)/8;
-    if (Math.abs(diff) > 1) {
-      window.scrollTo(0, (window.scrollY + diff));
-      clearTimeout(window._TO);
-      window._TO=setTimeout(this.scrollToItem, 30, item);
-    } else {
-      window.scrollTo(0, item.offsetTop)
-    }
-  }
-});
-
-
 /*******************************************************************
   Handles buckets, colour array, predefined colours
 *******************************************************************/
-game.service('bucket', function(style, $timeout, aliens, history) {
+game.service('bucket', function($timeout, aliens, history) {
+
+  this.convertSolution = function(data) {
+    this.buckets = {};
+    for (var i=0; i < data.length; i++) {
+      var bid = getUniqueId();
+      this.buckets[bid] = data[i].alien;
+    }
+  }
 
   this.restoreBucketsHelper= function (data) {
     this.num_buckets = 0;
@@ -368,26 +327,12 @@ game.service('bucket', function(style, $timeout, aliens, history) {
     }
   }
 
-  /* Returns an array of all highlighted aliens */
-  this.currentBucket = function(curBucket, method_flag) {
-    this.current_bucket = curBucket;
-
-    // Free similar aliens
-    style.lowLightSimilarAliens();
-    aliens.zoominAliens = [];
-
-    // Highlight aliens that are similar to aliens in current bucket
-    var cur_alien_list = this.buckets[curBucket].alien;
-    style.highLight(cur_alien_list[0], this.buckets[curBucket], method_flag);
-  };
-
   /* Update the array of colours and returns. */
   this.addBucket = function() {
     var newBid = getUniqueId();
     this.buckets[newBid] = {alien:[], similarity:0};
     this.num_buckets++;
-    this.currentBucket(newBid);
-    this.updateAlienArray();
+    this.current_bucket = newBid;
   };
 
   // Source: https://gist.github.com/gordonbrander/2230317
@@ -413,66 +358,6 @@ game.service('bucket', function(style, $timeout, aliens, history) {
     return aliens.alienArray[alienId].score/this.highestAlienScore * 100;
   };
 
-  this.updateAlienArray  = function() {
-    for (var i = 0; i < this.orderedIds.length; i++) {
-      var aid = this.orderedIds[i];
-      var strippedAid = aid.substr(1);
-      // Alien in current bucket: should display an empty space
-      if (aid[0] != "_") {
-        if (aliens.alienArray[aid].bid == this.current_bucket) {
-          this.orderedIds[i] = "_" + aid;
-        }
-        aliens.alienArray[aid].similarityBar = this.getAlienScore(aid);
-      }
-      // Alien not in current bucket: put it back to the list
-      else if (aid[0] == "_") {
-        if (aliens.alienArray[strippedAid].bid != this.current_bucket) {
-          this.orderedIds[i] = strippedAid;
-        }
-        aliens.alienArray[strippedAid].similarityBar = this.getAlienScore(strippedAid);
-      }
-    }
-
-    // No buckt selected
-    if (this.current_bucket == null) {
-      this.currentAliens = [];
-    }
-    else {
-      this.currentAliens = this.buckets[this.current_bucket].alien;
-    }
-  }
-
-  this.orderAlienArray = function() {
-    this.orderedIds = [];
-
-    for (var id in aliens.alienArray) {
-      if (aliens.alienArray[id].bid == null) {
-        this.orderedIds.push(id);
-      }
-    }
-
-    var sortedBucket = [];
-    for (var bid in this.buckets) {
-      sortedBucket.push(this.buckets[bid]);
-    }
-
-    sortedBucket.sort(function(a, b) {
-      return a.similarity - b.similarity;
-    });
-
-    for (i = 0; i < sortedBucket.length; i++) {
-      this.orderedIds = this.orderedIds.concat(sortedBucket[i].alien);
-    }
-
-    // No buckt selected
-    if (this.current_bucket == null) {
-      this.currentAliens = [];
-    }
-    else {
-      this.currentAliens = this.buckets[this.current_bucket].alien;
-    }
-  };
-
   this.getBucketScore = function(alienId) {
     if (aliens.alienArray[alienId].bid == null) {
       return 0;
@@ -483,6 +368,20 @@ game.service('bucket', function(style, $timeout, aliens, history) {
     }
     return this.buckets[bucketId].similarity/this.highestBucketScore * 100;
   };
+
+  // Select/deselect bacteria and update highlight
+  this.selectBacteria = function(aid) {
+    // aliens.alienArray[aid].properties.forEach(function(propId) {
+    //   $(".bacterium." + propId).addClass("common");
+    //   $(".bacterium." + bacteriaId).addClass('current-bacteria');
+    // });
+    // var currentBacteriaInModel = ;
+    // $(".bacteria." + bacteriaId).toggleClass('selected-bacteria');
+  }
+
+  this.deselectBacteria = function(bacteriaId) {
+    $(".bacteria." + bacteriaId).removeClass('selected-bacteria');
+  }
 });
 
 game.service('history', function(aliens) {

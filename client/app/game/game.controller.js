@@ -2,7 +2,7 @@
 
 angular.module('nwmApp').controller('gameController',
   function ($scope, Restangular, $stateParams, $state, $timeout, update,
-            helper, database, style, bucket, history, aliens, $localStorage) {
+            helper, database, bucket, history, aliens, $localStorage) {
 
     function apply(scope) {
       if (!scope.$$phase && !scope.$root.$$phase) {
@@ -81,18 +81,8 @@ angular.module('nwmApp').controller('gameController',
 
     $scope.currentBucket = function (curBucket) {
       // Currently we are using the FIRST highlighting algorithm. Second => 2, Third => 3.
-      bucket.currentBucket(curBucket, 1);
+      bucket.current_bucket = curBucket;
       update.updateIllegalAlien();
-      if (bucket.buckets[bucket.current_bucket].alien.length > 0) {
-        $scope.checked = true;
-        $('#aliens').css('width', $(window).width() - $('#section').width());
-      }
-      else {
-        $scope.checked = false;
-        $('#aliens').css('width', '97%');
-      }
-
-      $("#myDiv").height();
     };
 
     var feedback = function (alienId) {
@@ -141,11 +131,8 @@ angular.module('nwmApp').controller('gameController',
       $scope.bucket = bucket;
       $scope.aliens = aliens;
       $scope.history = history;
-      $scope.style = style;
 
       // $scope.toggleChooseSolutionPopup();
-      $scope.dragged = false;  // Disable click event when start dragging
-      $scope.checked = true;
       $scope.tutorial = false;
       $scope.disableRedo = true;
       $scope.disableUndo = true;
@@ -157,61 +144,17 @@ angular.module('nwmApp').controller('gameController',
       $scope.cur_level = $stateParams.id;
 
       // Request data from the server
-      bucket.orderedIds = ["7_26"];
-      var data = [{level: 1,
-              model: 0,
-              id: 1,
-              url:
-               [ 'https://chrchung.github.io/Creatures/1.png',
-                 'https://chrchung.github.io/Creatures/2.png',
-                 'https://chrchung.github.io/Creatures/3.png',
-                 'https://chrchung.github.io/Creatures/4.png' ],
-              prop: [ 1, 2, 3, 4 ] },
-              {level: 1,
-              model: 0,
-              id: 2,
-              url:
-               [ 'https://chrchung.github.io/Creatures/3.png',
-                 'https://chrchung.github.io/Creatures/5.png',
-                 'https://chrchung.github.io/Creatures/10.png',
-                 'https://chrchung.github.io/Creatures/15.png' ],
-              prop: [ 3, 5, 10, 15 ] },
-              {level: 1,
-              model: 1,
-              id: 1,
-              url:
-               [ 'https://chrchung.github.io/Creatures/1.png',
-                 'https://chrchung.github.io/Creatures/5.png',
-                 'https://chrchung.github.io/Creatures/8.png',
-                 'https://chrchung.github.io/Creatures/9.png' ],
-              prop: [ 1, 5, 8, 9 ] },
-              {level: 1,
-              model: 2,
-              id: 1,
-              url:
-               [ 'https://chrchung.github.io/Creatures/1.png',
-                 'https://chrchung.github.io/Creatures/5.png',
-                 'https://chrchung.github.io/Creatures/8.png',
-                 'https://chrchung.github.io/Creatures/9.png' ],
-              prop: [ 1, 4, 8, 12 ] }
-];
-
-      $scope.maxModels, $scope.numAliens = database.parseData(data);
-
-      // Restangular.all('/api/levels/').get($scope.cur_level).then(function (data) {
-      //   console.log(data);
-      //   $scope.maxModels, $scope.numAliens = database.parseData(data);
-      //   database.shuffleProperties();
-      //   $scope.restoreBestGame();
-      // }, function (err) {
-      //   $('#log-in').fadeIn();
-      //   $scope.loaded = true;
-      // });
-      apply($scope);
+      Restangular.all('/api/levels/').get($scope.cur_level).then(function (data) {
+        $scope.maxModels, $scope.numAliens = database.parseData(data);
+        $scope.restoreBestGame();
+        apply($scope);
+      }, function (err) {
+        $('#log-in').fadeIn();
+        $scope.loaded = true;
+      });
     };
 
     $scope.getNext = function(model, incr) {
-      console.log(aliens.currentBacterias);
       var curBacteriaIdx = aliens.currentBacterias[model];
       var numAliens = aliens.aliensByModel[model].length;
       if (incr > 0) {
@@ -248,15 +191,16 @@ angular.module('nwmApp').controller('gameController',
     };
 
     $scope.restoreBestGame = function () {
-      Restangular.all('api/scores/best_solution/' + $scope.cur_level)
-        .getList().then(function (serverJson) {
+      Restangular.all('api/scores/best_solution/')
+        .get($scope.cur_level).then(function (data) {
 
-        if (serverJson.length == 0) {
+        if (!data) {
           return;
         }
 
-        $scope.highest_score = serverJson[0].score;
-        bucket.buckets = JSON.parse(serverJson[0].solution);
+        $scope.highest_score = data.score;
+        bucket.buckets = data.solution;
+        console.log(data);
 
         // Restore data structures
         Object.keys(bucket.buckets).forEach(function(bid) {
@@ -644,7 +588,6 @@ angular.module('nwmApp').controller('gameController',
           if (!illegal_swap) {
             feedback(alien_id);
           }
-          bucket.updateAlienArray();
         }
 
         // Normal aliens
@@ -664,15 +607,10 @@ angular.module('nwmApp').controller('gameController',
               aliens.alienArray[alien_id].bid = null;
               bucket.buckets[bucket.current_bucket].alien.splice(ind, 1);
 
-              if (bucket.buckets[bucket.current_bucket].alien.length == 0) {
-                $scope.checked = false;
-              }
-
               $scope.currentBucket(bucket.current_bucket);
               if (!illegal_swap) {
                 feedback(alien_id);
               }
-              bucket.updateAlienArray();
             }
 
             // Select aliens
@@ -687,7 +625,6 @@ angular.module('nwmApp').controller('gameController',
               if (!illegal_swap) {
                 feedback(alien_id);
               }
-              bucket.updateAlienArray();
             }
           }
         }
@@ -714,7 +651,6 @@ angular.module('nwmApp').controller('gameController',
     };
 
     $scope.newGroup = function (tut) {
-      $scope.checked = false;
       if (bucket.current_bucket == null || bucket.buckets[bucket.current_bucket].alien.length > 0) {
         bucket.addBucket();
         update.updateIllegalAlien();
@@ -733,9 +669,10 @@ angular.module('nwmApp').controller('gameController',
         return;
       }
 
-      var bid = aliens.alienArray[alien_id].bid;
-      $scope.currentBucket(bid);
-      bucket.updateAlienArray();
+      var alien = aliens.alienArray[alien_id];
+      var pos = aliens.aliensByModel[alien.model].indexOf(alien_id);
+      aliens.currentBacterias[alien.model] = pos;
+      $scope.currentBucket(alien.bid);
     }
 
     $scope.onStart = function (event) {
@@ -769,7 +706,6 @@ angular.module('nwmApp').controller('gameController',
       if (newVal == null) {
         $scope.disableUndo = true;
         $scope.disableRedo = true;
-        $scope.checked = true;
       }
     });
 
@@ -804,7 +740,6 @@ angular.module('nwmApp').controller('gameController',
         if (compare_flag) {
           $scope.disableUndo = true;
           $scope.disableRedo = true;
-          $scope.checked = true;
         }
       }
 
@@ -865,7 +800,6 @@ angular.module('nwmApp').controller('gameController',
         $scope.currentBucket(bucket.current_bucket);
       }
       feedback(diff_alien);
-      bucket.updateAlienArray();
 
       $scope.disableRedo = false;
 
@@ -898,7 +832,6 @@ angular.module('nwmApp').controller('gameController',
         $scope.currentBucket(bucket.current_bucket);
       }
       feedback(diff_alien);
-      bucket.updateAlienArray();
 
       $scope.disableUndo = false;
 
