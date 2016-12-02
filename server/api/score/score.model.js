@@ -9,7 +9,7 @@ var ScoreSchema = new Schema({
   initialScore: Number,
   targetScore: Number,
   score: Number,
-  solution: [Object],
+  solution: Object,
   duration: Number,
   seed: String,
   type: String,
