@@ -100,7 +100,7 @@ exports.getBestSolution = function (req, res) {
     Score.find({ "level": level }, function (err, solution) {
       if(err) { res.status(400).end(); }
       res.json(solution);
-    }).sort({ score:-1 }).limit(1).pretty();
+    }).sort({ score:-1 }).limit(1);
   }
 };
 

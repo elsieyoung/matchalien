@@ -1,14 +1,18 @@
-<div style="overflow:auto;max-height:60px;margin:20px;" ng-repeat="aid in bucket.orderedIds">
-  <div class="an-alien alien {{aid}} {{aliens.alienArray[aid].illegal}} {{aliens.alienArray[aid].isHidden}}"
-       ng-click="selectAlien(aid, false)"
-       ng-if="aid[0] != '_'">
-    <div ng-repeat="prop in aliens.alienArray[aid].properties"
-         class="property prop_{{aliens.alienArray[aid].properties[$index]}}">
-	    <img class="img-responsive"
-           style="cursor:pointer;height:60px;"
-           ng-src="{{aliens.alienArray[aid].url[$index]}}"/>
+<div ng-repeat="(model, idx) in aliens.currentBacterias"
+     class="model {{modelNum}}">
+  <div class="col-xs-2">
+    <br>
+    <button><span class="glyphicon glyphicon-chevron-up" style="float:left;cursor:pointer;" aria-hidden="true" ng-click="getNext(model, -1)"></span></button>
+    <br>
+    <button><span class="glyphicon glyphicon-chevron-down" style="float:left;cursor:pointer;" aria-hidden="true" ng-click="getNext(model, 1)"></span></button>
+  </div>
+  <div class="col-xs-8 bacteria {{aliens.getBacteria(model, idx).id}}"
+       ng-click="style.highLight(aliens.getBacteria(model, idx).id)"
+       ng-if="aliens.getBacteria(model, idx).id[0] != '_'">
+    <div ng-repeat="propId in aliens.getBacteria(model, idx).properties"
+         class="bacterium {{propId}}">
+       <img ng-src="{{aliens.getBacteria(model, idx).url[$index]}}"/>
     </div>
-	</div>
+  </div>
+  <br/>
 </div>
-
-{{hello}}!

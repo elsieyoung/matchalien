@@ -6,8 +6,8 @@
 describe('Controller: gameController', function() {
 
   // load the controller's module
-  beforeEach(module('game'));
-  beforeEach(module('stateMock'));
+  beforeEach(module('nwmApp'));
+  // beforeEach(module('stateMock'));
 
   var scope;
   var gameController;
